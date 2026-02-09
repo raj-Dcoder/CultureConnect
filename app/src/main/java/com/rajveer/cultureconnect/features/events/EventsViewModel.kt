@@ -25,6 +25,13 @@ constructor(
     private val _savedIds = MutableStateFlow<List<String>>(emptyList())
     val savedIds = _savedIds.asStateFlow()
 
+    // filter states
+    private val _selectedDateFilter = MutableStateFlow<String>("This Week")
+    val selectedDateFilter = _selectedDateFilter.asStateFlow()
+
+    private val _selectedCategories = MutableStateFlow<Set<String>>(emptySet())
+    val selectedCategories = _selectedCategories.asStateFlow()
+    
     init {
         loadEvents()
         loadSavedEvents()
@@ -46,7 +53,33 @@ constructor(
             }
 
     private fun loadEvents() =
+    
             viewModelScope.launch { 
-                _events.value = repo.getApprovedEvents("Goa") 
+                try {
+                    android.util.Log.d("EventsViewModel", "🔍 Starting to load events for Bhubaneswar...")
+                    val fetchedEvents = repo.getApprovedEvents("Bhubaneswar",selectedCategories.value, selectedDateFilter.value)
+                    
+                    android.util.Log.d("EventsViewModel", "✅ Fetched ${fetchedEvents.size} events")
+                    fetchedEvents.forEach { event ->
+                        android.util.Log.d("EventsViewModel", "  📅 ${event.title} - ${event.city}")
+                    }
+                    _events.value = fetchedEvents
+                } catch (e: Exception) {
+                    android.util.Log.e("EventsViewModel", "❌ Error loading events: ${e.message}", e)
+                }
             }
+           
+    fun setDateFilter(filter: String) {
+        _selectedDateFilter.value = filter
+        loadEvents()
+    }
+
+    fun toggleCategory(category: String) {
+        if (_selectedCategories.value.contains(category)) {
+            _selectedCategories.value = _selectedCategories.value - category 
+        } else {
+            _selectedCategories.value = _selectedCategories.value + category
+        }
+        loadEvents()
+    }
 }

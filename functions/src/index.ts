@@ -276,8 +276,8 @@ function generateDeepLink(
         // Uber deep link format
         return `uber://?action=setPickup&pickup[latitude]=${originLat}&pickup[longitude]=${originLng}&dropoff[latitude]=${destLat}&dropoff[longitude]=${destLng}`;
     } else if (providerName.startsWith("Rapido")) {
-        // Rapido deep link format - custom scheme
-        return `rapido://rapido/book_ride?pickup=${originLat},${originLng}&drop=${destLat},${destLng}`;
+        // Rapido HTTPS link - works whether app is installed or not
+        return `https://rapido.bike/ride/share?pickup_lat=${originLat}&pickup_lng=${originLng}&drop_lat=${destLat}&drop_lng=${destLng}`;
     } else {
         // Fallback - return empty string
         return "";

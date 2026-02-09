@@ -13,8 +13,10 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class EventsViewModel
 @Inject
-constructor(private val repo: EventRepository, private val savedRepo: SavedEventsRepository) :
-        ViewModel() {
+constructor(
+    private val repo: EventRepository, 
+    private val savedRepo: SavedEventsRepository
+) : ViewModel() {
 
     private val _events =
             MutableStateFlow<List<com.rajveer.cultureconnect.core.model.Event>>(emptyList())

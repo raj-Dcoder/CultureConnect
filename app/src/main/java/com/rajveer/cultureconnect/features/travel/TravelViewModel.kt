@@ -12,6 +12,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.rajveer.cultureconnect.core.location.CityResolver
 
 /**
  * ViewModel for Travel feature - Ride fare comparison
@@ -24,7 +25,8 @@ class TravelViewModel
 constructor(
         val locationService: LocationService,
         private val placesRepository: PlacesRepository,
-        private val fareService: FareService
+        private val fareService: FareService,
+        private val cityResolver: CityResolver
 ) : ViewModel() {
 
     // UI State
@@ -86,6 +88,19 @@ constructor(
                         }
                     }
         }
+    }
+
+    /**
+     * Swap pickup and drop locations
+     */
+    fun swapLocations() {
+        // Save current values in temporary variables
+        val tempFrom = _fromLocation.value
+        val tempTo = _toLocation.value
+        
+        // Swap them
+        _fromLocation.value = tempTo
+        _toLocation.value = tempFrom
     }
 
     /** Update search query (triggers debounced search) */
@@ -180,12 +195,29 @@ constructor(
         viewModelScope.launch {
             _uiState.value = TravelUiState.LoadingLocation
 
+            // 👇 NEW: Check if location is enabled first
+            if (!locationService.isLocationEnabled()) {
+                _uiState.value = TravelUiState.Error(
+                        "Location is turned off. Please enable GPS in your phone settings."
+                )
+                return@launch  // Exit early
+            }
+
             val location = locationService.getCurrentLocation()
 
             if (location != null) {
+                 val addressName = try {
+                // You'll need to inject CityResolver into ViewModel
+                cityResolver.getFormattedAddress(
+                    location.latitude, 
+                    location.longitude
+                )
+            } catch (e: Exception) {
+                "Current Location"  // Fallback if geocoding fails
+            }
                 _fromLocation.value =
                         TravelLocation(
-                                name = "Current Location",
+                                name = addressName,
                                 latLng = LatLng(location.latitude, location.longitude),
                                 isCurrentLocation = true
                         )

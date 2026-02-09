@@ -2,6 +2,8 @@ package com.rajveer.cultureconnect.features.travel
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -261,14 +263,50 @@ fun EnhancedFareCard(
                 if (estimate.deepLink.isNotEmpty()) {
                     Button(
                             onClick = {
+                                Log.d("FareCard", "📱 Attempting to open: ${estimate.provider}")
+                                Log.d("FareCard", "Deep link: ${estimate.deepLink}")
+                                
                                 try {
-                                    val intent =
-                                            Intent(Intent.ACTION_VIEW, Uri.parse(estimate.deepLink))
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(estimate.deepLink))
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     context.startActivity(intent)
+                                    Log.d("FareCard", "✅ Intent started")
                                 } catch (e: Exception) {
-                                    // App not installed - could show a toast
+                                    Log.e("FareCard", "❌ Failed to open ${estimate.provider}", e)
+                                    
+                                    // Fallback: Try to open Play Store
+                                    val playStoreUrl = when {
+                                        estimate.provider.contains("Rapido", ignoreCase = true) -> 
+                                            "https://play.google.com/store/apps/details?id=com.rapido.passenger"
+                                        estimate.provider.contains("Uber", ignoreCase = true) -> 
+                                            "https://play.google.com/store/apps/details?id=com.ubercab"
+                                        estimate.provider.contains("Ola", ignoreCase = true) -> 
+                                            "https://play.google.com/store/apps/details?id=com.olacabs.customer"
+                                        else -> null
+                                    }
+                                    
+                                    if (playStoreUrl != null) {
+                                        try {
+                                            Log.d("FareCard", "🛒 Opening Play Store for ${estimate.provider}")
+                                            val playStoreIntent = Intent(Intent.ACTION_VIEW, Uri.parse(playStoreUrl))
+                                            context.startActivity(playStoreIntent)
+                                        } catch (ex: Exception) {
+                                            Log.e("FareCard", "❌ Failed to open Play Store", ex)
+                                            Toast.makeText(
+                                                context,
+                                                "${estimate.provider} not available",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "${estimate.provider} app not installed",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 }
-                            },
+                                },
                             modifier = Modifier.height(36.dp),
                             shape = RoundedCornerShape(10.dp),
                             colors =

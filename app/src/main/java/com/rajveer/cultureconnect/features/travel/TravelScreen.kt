@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 /** Travel Screen - Minimalist design matching reference */
 @Composable
@@ -35,17 +37,20 @@ fun TravelScreen(viewModel: TravelViewModel = hiltViewModel()) {
     // Local state for text input
     var fromQuery by remember { mutableStateOf("") }
     var toQuery by remember { mutableStateOf("") }
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     
     // Update queries when locations are selected
     LaunchedEffect(fromLocation) {
-        if (fromLocation != null) {
-            fromQuery = fromLocation.name
+        fromLocation?.let {
+            fromQuery = it.name
         }
     }
     
     LaunchedEffect(toLocation) {
-        if (toLocation != null) {
-            toQuery = toLocation.name
+        toLocation?.let {
+            toQuery = it.name
         }
     }
 
@@ -198,7 +203,18 @@ fun TravelScreen(viewModel: TravelViewModel = hiltViewModel()) {
                             contentAlignment = Alignment.CenterEnd
                     ) {
                         Surface(
-                                onClick = { /* TODO: Swap */},
+                                onClick = { 
+                                    // Only swap if both locations are selected
+                                    if (fromLocation != null && toLocation != null) {
+                                        // Swap the text queries in UI
+                                        val tempQuery = fromQuery
+                                        fromQuery = toQuery
+                                        toQuery = tempQuery
+                
+                                        // Tell ViewModel to swap the actual location objects
+                                        viewModel.swapLocations()
+                                    }
+                                },
                                 modifier = Modifier.size(40.dp),
                                 shape = CircleShape,
                                 color = Color(0xFFF5F5F5)
@@ -302,7 +318,14 @@ fun TravelScreen(viewModel: TravelViewModel = hiltViewModel()) {
 
                     // Compare Fares Button
                     Button(
-                            onClick = { viewModel.compareFares() },
+                            onClick = { 
+                                // Clear focus and hide keyboard
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                                
+                                // Then compare fares
+                                viewModel.compareFares()
+                            },
                             enabled = fromLocation != null && toLocation != null,
                             modifier = Modifier.fillMaxWidth().height(50.dp),
                             shape = RoundedCornerShape(25.dp),
@@ -347,8 +370,22 @@ fun TravelScreen(viewModel: TravelViewModel = hiltViewModel()) {
 
             Spacer(modifier = Modifier.height(100.dp))
         }
+        
+        // Location Permission Handler
+        if (showPermissionHandler) {
+            LocationPermissionHandler(
+                onPermissionGranted = {
+                    showPermissionHandler = false
+                    viewModel.useCurrentLocation()
+                },
+                onPermissionDenied = {
+                    showPermissionHandler = false
+                }
+            )
+        }
     }
 }
+
 
 /** How it works section with icons */
 @Composable

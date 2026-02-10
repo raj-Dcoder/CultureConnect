@@ -100,23 +100,33 @@ fun EventsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if(isLoading){
-            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center){
-                CircularProgressIndicator()
+        when {
+            // Loading state
+            isLoading->{
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center){
+                    CircularProgressIndicator()
+                }
             }
-        }else{
-            // Events List
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(events) { event ->
-                    EventCard(
-                        event = event,
-                        isSaved = savedIds.contains(event.id),
-                        onSaveClick = { viewModel.toggleSave(event.id) },
-                        onClick = { onEventClick(event.id) }
-                    )
+            // Empty event List
+            events.isEmpty()->{
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center){
+                    Text("No events found")
+                }
+            }
+            // Event Lists
+            else->{
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(events) { event ->
+                        EventCard(
+                            event = event,
+                            isSaved = savedIds.contains(event.id),
+                            onSaveClick = { viewModel.toggleSave(event.id) },
+                            onClick = { onEventClick(event.id) }
+                        )
+                    }
                 }
             }
         }

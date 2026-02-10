@@ -9,6 +9,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.rajveer.cultureconnect.core.model.Event
 
 @HiltViewModel
 class EventsViewModel
@@ -17,10 +18,13 @@ constructor(
     private val repo: EventRepository, 
     private val savedRepo: SavedEventsRepository
 ) : ViewModel() {
-
-    private val _events =
-            MutableStateFlow<List<com.rajveer.cultureconnect.core.model.Event>>(emptyList())
+    // Filtered events (for EventsScreen with filters)
+    private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events = _events.asStateFlow()
+
+    // ALL events (unfiltered, for EventDetailScreen)
+    private val _allEvents = MutableStateFlow<List<Event>>(emptyList())
+    val allEvents = _allEvents.asStateFlow()
 
     private val _savedIds = MutableStateFlow<List<String>>(emptyList())
     val savedIds = _savedIds.asStateFlow()
@@ -32,11 +36,14 @@ constructor(
     private val _selectedCategories = MutableStateFlow<Set<String>>(emptySet())
     val selectedCategories = _selectedCategories.asStateFlow()
     
+    // loading state
+    private val _isLoading = MutableStateFlow<Boolean>(true)  // What should initial value be?
+    val isLoading = _isLoading.asStateFlow()
+
     init {
         loadEvents()
         loadSavedEvents()
     }
-
 
     fun loadSavedEvents() = viewModelScope.launch {
         _savedIds.value = savedRepo.getSavedEventIds()
@@ -55,17 +62,25 @@ constructor(
     private fun loadEvents() =
     
             viewModelScope.launch { 
+                _isLoading.value = true
                 try {
                     android.util.Log.d("EventsViewModel", "🔍 Starting to load events for Bhubaneswar...")
-                    val fetchedEvents = repo.getApprovedEvents("Bhubaneswar",selectedCategories.value, selectedDateFilter.value)
+                    // Get ALL events (no filters)
+                    val allEventsList = repo.getApprovedEvents("Bhubaneswar", emptySet(), "All")
+                    _allEvents.value = allEventsList
                     
-                    android.util.Log.d("EventsViewModel", "✅ Fetched ${fetchedEvents.size} events")
-                    fetchedEvents.forEach { event ->
-                        android.util.Log.d("EventsViewModel", "  📅 ${event.title} - ${event.city}")
-                    }
-                    _events.value = fetchedEvents
+                    // Get FILTERED events (with current filters)
+                    val filteredEvents = repo.getApprovedEvents("Bhubaneswar", selectedCategories.value, selectedDateFilter.value)
+                    _events.value = filteredEvents
+                    
+                    // android.util.Log.d("EventsViewModel", "✅ Fetched ${fetchedEvents.size} events")
+                    // fetchedEvents.forEach { event ->
+                    //     android.util.Log.d("EventsViewModel", "  📅 ${event.title} - ${event.city}")
+                    // }
                 } catch (e: Exception) {
                     android.util.Log.e("EventsViewModel", "❌ Error loading events: ${e.message}", e)
+                }finally{
+                    _isLoading.value = false
                 }
             }
            

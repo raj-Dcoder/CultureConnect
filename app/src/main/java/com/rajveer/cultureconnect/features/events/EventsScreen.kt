@@ -51,6 +51,9 @@ fun EventsScreen(
     val selectedDateFilter by viewModel.selectedDateFilter.collectAsState()
     val selectedCategories by viewModel.selectedCategories.collectAsState()
 
+    // loading state
+    val isLoading by viewModel.isLoading.collectAsState()
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -97,18 +100,24 @@ fun EventsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Events List
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(events) { event ->
-                EventCard(
-                    event = event,
-                    isSaved = savedIds.contains(event.id),
-                    onSaveClick = { viewModel.toggleSave(event.id) },
-                    onClick = { onEventClick(event.id) }
-                )
+        if(isLoading){
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center){
+                CircularProgressIndicator()
+            }
+        }else{
+            // Events List
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(events) { event ->
+                    EventCard(
+                        event = event,
+                        isSaved = savedIds.contains(event.id),
+                        onSaveClick = { viewModel.toggleSave(event.id) },
+                        onClick = { onEventClick(event.id) }
+                    )
+                }
             }
         }
     }

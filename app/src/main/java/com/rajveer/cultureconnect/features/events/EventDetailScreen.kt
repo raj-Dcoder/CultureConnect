@@ -25,8 +25,11 @@ fun EventDetailScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val event = viewModel.events.collectAsState().value.firstOrNull { it.id == eventId }
+    val event = viewModel.allEvents.collectAsState().value.firstOrNull { it.id == eventId }
 
+    android.util.Log.d("EventDetail", "🔍 Looking for ID: $eventId")
+    android.util.Log.d("EventDetail", "📋 Events in VM: ${viewModel.allEvents.value.size}")
+    android.util.Log.d("EventDetail", "✅ Found: ${event?.title ?: "NULL"}")
     event?.let {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -53,6 +54,8 @@ fun EventsScreen(
 
     // loading state
     val isLoading by viewModel.isLoading.collectAsState()
+
+    val errorMessage by viewModel.errorMessage.collectAsState()
     
     Column(
         modifier = Modifier
@@ -101,12 +104,37 @@ fun EventsScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         when {
+            // Error state
+            errorMessage != null -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = errorMessage ?: "Unknown error",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.loadEvents() }) {
+                        Text("Retry")
+                    }
+                }
+            }
+
             // Loading state
             isLoading->{
                 Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center){
                     CircularProgressIndicator()
                 }
             }
+            
             // Empty event List
             events.isEmpty()->{
                 Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center){

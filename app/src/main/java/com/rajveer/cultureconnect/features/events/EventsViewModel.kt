@@ -40,6 +40,10 @@ constructor(
     private val _isLoading = MutableStateFlow<Boolean>(true)  // What should initial value be?
     val isLoading = _isLoading.asStateFlow()
 
+    // error message state
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
+
     init {
         loadEvents()
         loadSavedEvents()
@@ -59,10 +63,12 @@ constructor(
                 loadSavedEvents()
             }
 
-    private fun loadEvents() =
+    fun loadEvents() =
     
             viewModelScope.launch { 
                 _isLoading.value = true
+                _errorMessage.value = null //clear pervious error
+
                 try {
                     android.util.Log.d("EventsViewModel", "🔍 Starting to load events for Bhubaneswar...")
                     // Get ALL events (no filters)
@@ -73,12 +79,10 @@ constructor(
                     val filteredEvents = repo.getApprovedEvents("Bhubaneswar", selectedCategories.value, selectedDateFilter.value)
                     _events.value = filteredEvents
                     
-                    // android.util.Log.d("EventsViewModel", "✅ Fetched ${fetchedEvents.size} events")
-                    // fetchedEvents.forEach { event ->
-                    //     android.util.Log.d("EventsViewModel", "  📅 ${event.title} - ${event.city}")
-                    // }
                 } catch (e: Exception) {
+                    _errorMessage.value = e.message ?: "Unknown error occurred"
                     android.util.Log.e("EventsViewModel", "❌ Error loading events: ${e.message}", e)
+                
                 }finally{
                     _isLoading.value = false
                 }

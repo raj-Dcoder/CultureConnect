@@ -3,6 +3,7 @@ package com.rajveer.cultureconnect.core.data
 import com.google.firebase.firestore.FirebaseFirestore
 import com.rajveer.cultureconnect.core.model.Event
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 import javax.inject.Inject
 
 class EventRepository @Inject constructor(
@@ -14,10 +15,14 @@ class EventRepository @Inject constructor(
         android.util.Log.d("EventRepository", "🔍 Querying Firestore for city: $city")
         android.util.Log.d("EventRepository", "🔍 Querying Firestore for categories: $categories")
         android.util.Log.d("EventRepository", "🔍 Querying Firestore for dateFilter: $dateFilter")
-        
+        val now = System.currentTimeMillis()
+        android.util.Log.d("EventRepository", "⏰ Current timestamp (now): $now = ${Date(now)}")
+        android.util.Log.d("EventRepository", "🔍 Filtering: endAt >= $now")
+
         val snapshot = events
             .whereEqualTo("city", city)
             .whereEqualTo("isApproved", true)
+            // .whereGreaterThanOrEqualTo("endAt", now)
             .get()
             .await()
         
@@ -26,6 +31,7 @@ class EventRepository @Inject constructor(
         val allEventsList = snapshot.toObjects(Event::class.java)
         android.util.Log.d("EventRepository", "✅ Converted to ${allEventsList.size} Event objects")
 
+        
         // Filter by category
         val categoryFiltered = if (categories.isEmpty()) {
             allEventsList  // No category filter, show all
@@ -35,26 +41,47 @@ class EventRepository @Inject constructor(
             }
         }
         /*Calculate timestamp boundaries*/
-        val now = System.currentTimeMillis()
         val startOfToday = java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
         val endOfToday = startOfToday + 24 * 60 * 60 * 1000L
         val endOfWeek = now + 7 * 24 * 60 * 60 * 1000L
         // Filter by date
         val dateFiltered = when (dateFilter) {
             "Today" -> {
+                // Show events happening today (started before/today AND ending today/after)
                 categoryFiltered.filter { event ->
-                    event.startAt >= startOfToday && event.startAt <= endOfToday
+                    event.endAt >= startOfToday && event.startAt <= endOfToday
                 }
             }
             "This Week" -> {
+                // Show events in the next 7 days
                 categoryFiltered.filter { event ->
-                    event.startAt <= endOfWeek && event.endAt >= now
+                    event.endAt >= now && event.startAt <= endOfWeek
                 }
             }
-            else -> categoryFiltered  
+            "This Weekend" -> {
+                // Calculate this Saturday and Sunday
+                val calendar = java.util.Calendar.getInstance()
+                val today = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+                val daysUntilSaturday = (java.util.Calendar.SATURDAY - today + 7) % 7
+                val daysUntilSunday = daysUntilSaturday + 1
+                
+                val saturdayStart = startOfToday + (daysUntilSaturday * 24 * 60 * 60 * 1000L)
+                val sundayEnd = startOfToday + (daysUntilSunday * 24 * 60 * 60 * 1000L) + (24 * 60 * 60 * 1000L)
+                
+                categoryFiltered.filter { event ->
+                    event.endAt >= saturdayStart && event.startAt <= sundayEnd
+                }
+            }
+            "This Month" -> {
+                // Show events in the next 30 days
+                val endOfMonth = now + (30 * 24 * 60 * 60 * 1000L)
+                categoryFiltered.filter { event ->
+                    event.endAt >= now && event.startAt <= endOfMonth
+                }
+            }
+            else -> categoryFiltered  // "All" - no date filtering
         }
         android.util.Log.d("EventRepository", "✅ Filtered to ${dateFiltered.size} events")
-        
         return dateFiltered
     }
 }

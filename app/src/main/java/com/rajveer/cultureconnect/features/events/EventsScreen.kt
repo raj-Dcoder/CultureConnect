@@ -76,7 +76,7 @@ fun EventsScreen(
             modifier = Modifier.padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(listOf("Today", "This Week", "All")) { filter ->
+            items(listOf("Today", "This Weekend", "This Week", "This Month", "All")) { filter ->
                 DateFilterChip(
                     label = filter,
                     selected = selectedDateFilter == filter,

@@ -162,7 +162,9 @@ private fun MainAppWithBottomNav(
             startDestination = BottomNavItem.Explore.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(BottomNavItem.Explore.route) { ExploreScreen() }
+            composable(BottomNavItem.Explore.route) {
+                ExploreScreen(onEventClick = { id -> navController.navigate("event/$id") })
+            }
             composable("events") {
                 EventsScreen(onEventClick = { id -> navController.navigate("event/$id") })
             }

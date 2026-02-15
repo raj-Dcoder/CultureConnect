@@ -3,6 +3,7 @@ package com.rajveer.cultureconnect.features.profile
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.rajveer.cultureconnect.core.data.SavedEventsRepository
 import com.rajveer.cultureconnect.core.location.CityResolver
 import com.rajveer.cultureconnect.core.location.LocationManager
@@ -18,12 +19,18 @@ import kotlinx.coroutines.launch
 class ProfileViewModel
 @Inject
 constructor(
-        private val locationManager: LocationManager,
-        private val cityResolver: CityResolver,
-        private val modeManager: ModeManager,
-        private val savedRepo: SavedEventsRepository
-
+    private val locationManager: LocationManager,
+    private val cityResolver: CityResolver,
+    private val modeManager: ModeManager,
+    private val savedRepo: SavedEventsRepository,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
+
+
+    // Current user info from Firebase Auth
+    val userName: String get() = auth.currentUser?.displayName ?: "User"
+    val userEmail: String get() = auth.currentUser?.email ?: ""
+    val userPhotoUrl: String get() = auth.currentUser?.photoUrl?.toString() ?: ""
 
     // Expose mode from ModeManager
     val mode = modeManager.mode
@@ -44,45 +51,71 @@ constructor(
     private val _hasLocationPermission = MutableStateFlow(false)
     val hasLocationPermission = _hasLocationPermission.asStateFlow()
 
+    // Prevents auto-detection from running on every screen visit
+    private var hasDetected = false
+
     private val _savedIds = MutableStateFlow<List<String>>(emptyList())
     val savedIds = _savedIds.asStateFlow()
 
-    fun loadSavedEvents() = viewModelScope.launch {
-        _savedIds.value = savedRepo.getSavedEventIds()
+    init {
+        initIfNeeded() // Detect location as soon as app launches
     }
 
-    /** Check and update location permission status */
+    /** Called by Screen's LaunchedEffect — only runs auto-detect ONCE per session */
+    fun initIfNeeded() {
+        checkLocationPermission()
+        if (!hasDetected && _hasLocationPermission.value) {
+            hasDetected = true
+            detectUserMode()
+        }
+        loadSavedEvents()
+    }
+
+    fun loadSavedEvents() = viewModelScope.launch {
+        try {
+            _savedIds.value = savedRepo.getSavedEventIds()
+        } catch (e: Exception) {
+            Log.e("ProfileViewModel", "Error loading saved events", e)
+        }
+    }
+
+    fun clearSavedEvents() = viewModelScope.launch {
+        try {
+            savedRepo.clearAll()
+            _savedIds.value = emptyList()
+        } catch (e: Exception) {
+            Log.e("ProfileViewModel", "Error clearing saved events", e)
+        }
+    }
+
+    fun removeSavedEvent(eventId: String) = viewModelScope.launch {
+        try {
+            savedRepo.removeEvent(eventId)
+            _savedIds.value = _savedIds.value - eventId
+        } catch (e: Exception) {
+            Log.e("ProfileViewModel", "Error removing saved event", e)
+        }
+    }
+
     fun checkLocationPermission() {
         _hasLocationPermission.value = locationManager.hasLocationPermission()
     }
 
-    /**
-     * Main function to detect user mode based on current location.
-     *
-     * Flow:
-     * 1. Check location permission
-     * 2. Get current GPS coordinates
-     * 3. Resolve city name from coordinates
-     * 4. Update mode based on city comparison
-     */
     fun detectUserMode() {
         viewModelScope.launch {
             try {
                 _isDetecting.value = true
                 _errorMessage.value = null
 
-                // Step 1: Check permission
                 if (!locationManager.hasLocationPermission()) {
                     _errorMessage.value = "Location permission not granted"
                     _isDetecting.value = false
                     return@launch
                 }
 
-                // Step 2: Get current location
                 val location = locationManager.getCurrentLocation()
                 if (location == null) {
-                    _errorMessage.value =
-                            "Unable to get location. Please check if location services are enabled."
+                    _errorMessage.value = "Unable to get location. Check if location services are enabled."
                     _isDetecting.value = false
                     return@launch
                 }
@@ -90,7 +123,6 @@ constructor(
                 val (lat, lng) = location
                 Log.d("ProfileViewModel", "Location detected: $lat, $lng")
 
-                // Step 3: Resolve city name
                 val cityName = cityResolver.getCityName(lat, lng)
                 if (cityName.isEmpty()) {
                     _errorMessage.value = "Unable to determine city name"
@@ -101,19 +133,17 @@ constructor(
                 _detectedCity.value = cityName
                 Log.d("ProfileViewModel", "City detected: $cityName")
 
-                // Step 4: Update mode with mock user profile
-                // TODO: Replace with actual user profile from Firestore
-                val mockUserProfile =
-                        UserProfile(
-                                uid = "mock_user",
-                                name = "Test User",
-                                email = "test@example.com",
-                                homeCity =
-                                        "Jaipur", // 🔥 CHANGE THIS to your actual city for testing!
-                                modePreference = null // null means auto-detect
-                        )
+                // Use actual user data from FirebaseAuth
+                val currentUser = auth.currentUser
+                val userProfile = UserProfile(
+                    uid = currentUser?.uid ?: "",
+                    name = currentUser?.displayName ?: "",
+                    email = currentUser?.email ?: "",
+                    photoUrl = currentUser?.photoUrl?.toString() ?: "",
+                    homeCity = "Bhubaneswar"
+                )
 
-                modeManager.updateMode(cityName, mockUserProfile)
+                modeManager.updateMode(cityName, userProfile)
                 Log.d("ProfileViewModel", "Mode updated: ${mode.value}")
 
                 _isDetecting.value = false
@@ -125,9 +155,7 @@ constructor(
         }
     }
 
-    /** Clear error message */
     fun clearError() {
         _errorMessage.value = null
     }
-
 }

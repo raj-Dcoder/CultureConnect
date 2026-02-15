@@ -11,6 +11,17 @@ class EventRepository @Inject constructor(
 ) {
     private val events = db.collection("events")
 
+    /** Fetch a single event by its Firestore document ID */
+    suspend fun getEventById(eventId: String): Event? {
+        return try {
+            val doc = events.document(eventId).get().await()
+            doc.toObject(Event::class.java)?.copy(id = doc.id)
+        } catch (e: Exception) {
+            android.util.Log.e("EventRepository", "Error fetching event $eventId", e)
+            null
+        }
+    }
+
     suspend fun getApprovedEvents(city: String = "Bhubaneswar", categories: Set<String> = emptySet(), dateFilter: String = "This Week"): List<Event> {
         android.util.Log.d("EventRepository", "🔍 Querying Firestore for city: $city")
         android.util.Log.d("EventRepository", "🔍 Querying Firestore for categories: $categories")

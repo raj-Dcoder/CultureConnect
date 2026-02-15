@@ -52,6 +52,12 @@ fun EventsScreen(
     val selectedDateFilter by viewModel.selectedDateFilter.collectAsState()
     val selectedCategories by viewModel.selectedCategories.collectAsState()
 
+    // Reload saved IDs every time this screen becomes visible
+    // (syncs with changes made from Profile screen)
+    LaunchedEffect(Unit) {
+        viewModel.loadSavedEvents()
+    }
+
     // loading state
     val isLoading by viewModel.isLoading.collectAsState()
 

@@ -120,6 +120,8 @@ private fun MainAppWithBottomNav(
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
+    // Create ProfileViewModel early so location detects on app launch, not on Profile visit
+    val profileViewModel: com.rajveer.cultureconnect.features.profile.ProfileViewModel = hiltViewModel()
     val items = listOf(
         BottomNavItem.Explore,
         BottomNavItem.Events,

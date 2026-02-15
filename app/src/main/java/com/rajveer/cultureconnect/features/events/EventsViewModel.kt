@@ -101,4 +101,9 @@ constructor(
         }
         loadEvents()
     }
+
+    /** Fetch a single event directly from Firestore by ID */
+    suspend fun getEventById(eventId: String): com.rajveer.cultureconnect.core.model.Event? {
+        return repo.getEventById(eventId)
+    }
 }

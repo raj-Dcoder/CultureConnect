@@ -7,15 +7,13 @@ import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.EmojiTransportation
-import androidx.compose.material.icons.filled.TwoWheeler
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,343 +24,305 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-/** Display fare results from Cloud Function with enhanced UI */
+/** Display fare results */
 @Composable
 fun FareResultsSection(fareResponse: FareResponse, modifier: Modifier = Modifier) {
     var visible by remember { mutableStateOf(false) }
-
     LaunchedEffect(Unit) { visible = true }
 
     AnimatedVisibility(
-            visible = visible,
-            enter =
-                    fadeIn(animationSpec = tween(600)) +
-                            slideInVertically(
-                                    initialOffsetY = { it / 2 },
-                                    animationSpec = tween(600, easing = EaseOutCubic)
-                            )
+        visible = visible,
+        enter = fadeIn(tween(500)) + slideInVertically(
+            initialOffsetY = { it / 3 },
+            animationSpec = tween(500, easing = EaseOutCubic)
+        )
     ) {
-        Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            // Header with gradient background
-            Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors =
-                            CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // ─── Route Summary Bar ───────────────────────
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                tonalElevation = 1.dp
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-                    Text(
-                            text = "🚗 Fare Estimates",
-                            style = MaterialTheme.typography.headlineSmall,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Distance
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Route,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = fareResponse.distance.text,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+
+                    // Divider dot
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f))
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Distance and Duration chips
+                    // Duration
                     Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        InfoChip(
-                                icon = "📏",
-                                label = fareResponse.distance.text,
-                                modifier = Modifier.weight(1f)
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        InfoChip(
-                                icon = "⏱️",
-                                label = fareResponse.duration.text,
-                                modifier = Modifier.weight(1f)
+                        Text(
+                            text = fareResponse.duration.text,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
+
+                    // Divider dot
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f))
+                    )
+
+                    // Provider count
+                    Text(
+                        text = "${fareResponse.providers.size} options",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // ─── Provider Cards ──────────────────────────
+            fareResponse.providers.forEachIndexed { index, estimate ->
+                var itemVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(index * 100L)
+                    itemVisible = true
+                }
 
-            // Provider Cards with staggered animation
-            Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-            ) {
-                fareResponse.providers.forEachIndexed { index, estimate ->
-                    var itemVisible by remember { mutableStateOf(false) }
-
-                    LaunchedEffect(Unit) {
-                        kotlinx.coroutines.delay(index * 80L)
-                        itemVisible = true
-                    }
-
-                    AnimatedVisibility(
-                            visible = itemVisible,
-                            enter =
-                                    fadeIn(animationSpec = tween(400)) +
-                                            slideInHorizontally(
-                                                    initialOffsetX = { it / 3 },
-                                                    animationSpec =
-                                                            tween(400, easing = EaseOutCubic)
-                                            )
-                    ) {
-                        EnhancedFareCard(
-                                estimate = estimate,
-                                rank = index + 1,
-                                isLowest = index == 0
-                        )
-                    }
+                AnimatedVisibility(
+                    visible = itemVisible,
+                    enter = fadeIn(tween(350)) + slideInVertically(
+                        initialOffsetY = { it / 4 },
+                        animationSpec = tween(350, easing = EaseOutCubic)
+                    )
+                ) {
+                    PolishedFareCard(
+                        estimate = estimate,
+                        rank = index + 1,
+                        isBest = index == 0
+                    )
                 }
             }
         }
     }
 }
 
-/** Info chip for distance/duration */
+/** Polished fare card with clean layout */
 @Composable
-fun InfoChip(icon: String, label: String, modifier: Modifier = Modifier) {
-    Surface(
-            modifier = modifier,
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp
-    ) {
-        Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = icon, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-/** Enhanced card displaying a single provider's fare estimate */
-@Composable
-fun EnhancedFareCard(
-        estimate: FareEstimate,
-        rank: Int,
-        isLowest: Boolean,
-        modifier: Modifier = Modifier
+fun PolishedFareCard(
+    estimate: FareEstimate,
+    rank: Int,
+    isBest: Boolean,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val icon = getProviderIcon(estimate.category)
     val categoryColor = getCategoryColor(estimate.category)
 
     Card(
-            modifier = modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = if (isLowest) 4.dp else 2.dp),
-            colors =
-                    CardDefaults.cardColors(
-                            containerColor =
-                                    if (isLowest) MaterialTheme.colorScheme.tertiaryContainer
-                                    else MaterialTheme.colorScheme.surface
-                    )
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (isBest) Modifier.border(
+                    width = 1.5.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary
+                        )
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) else Modifier
+            ),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isBest) 3.dp else 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left side: Rank badge + Provider info
-            Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Rank badge
+        Column {
+            // Best price banner
+            if (isBest) {
                 Box(
-                        modifier =
-                                Modifier.size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                                if (isLowest) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.surfaceVariant
-                                        ),
-                        contentAlignment = Alignment.Center
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                            )
+                        )
+                        .padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                            text = "#$rank",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color =
-                                    if (isLowest) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "⚡ BEST PRICE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        letterSpacing = 1.sp
                     )
-                }
-
-                // Provider info
-                Column {
-                    Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                                imageVector = icon,
-                                contentDescription = estimate.category,
-                                tint = categoryColor,
-                                modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                                text = estimate.provider,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = categoryColor.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                                text = estimate.category,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = categoryColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                fontWeight = FontWeight.Medium
-                        )
-                    }
                 }
             }
 
-            // Right side: Fare + Action button
-            Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Fare amount
+                // Left: Icon + Provider name + Category
                 Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                            text = "₹",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                            text = estimate.estimatedFare.toString(),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                // Open App Button
-                if (estimate.deepLink.isNotEmpty()) {
-                    Button(
-                            onClick = {
-                                Log.d("FareCard", "📱 Attempting to open: ${estimate.provider}")
-                                Log.d("FareCard", "Deep link: ${estimate.deepLink}")
-                                
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(estimate.deepLink))
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    context.startActivity(intent)
-                                    Log.d("FareCard", "✅ Intent started")
-                                } catch (e: Exception) {
-                                    Log.e("FareCard", "❌ Failed to open ${estimate.provider}", e)
-                                    
-                                    // Fallback: Try to open Play Store
-                                    val playStoreUrl = when {
-                                        estimate.provider.contains("Rapido", ignoreCase = true) -> 
-                                            "https://play.google.com/store/apps/details?id=com.rapido.passenger"
-                                        estimate.provider.contains("Uber", ignoreCase = true) -> 
-                                            "https://play.google.com/store/apps/details?id=com.ubercab"
-                                        estimate.provider.contains("Ola", ignoreCase = true) -> 
-                                            "https://play.google.com/store/apps/details?id=com.olacabs.customer"
-                                        else -> null
-                                    }
-                                    
-                                    if (playStoreUrl != null) {
-                                        try {
-                                            Log.d("FareCard", "🛒 Opening Play Store for ${estimate.provider}")
-                                            val playStoreIntent = Intent(Intent.ACTION_VIEW, Uri.parse(playStoreUrl))
-                                            context.startActivity(playStoreIntent)
-                                        } catch (ex: Exception) {
-                                            Log.e("FareCard", "❌ Failed to open Play Store", ex)
-                                            Toast.makeText(
-                                                context,
-                                                "${estimate.provider} not available",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "${estimate.provider} app not installed",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                }
-                                },
-                            modifier = Modifier.height(36.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            colors =
-                                    ButtonDefaults.buttonColors(
-                                            containerColor =
-                                                    if (isLowest) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.secondary
-                                    ),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    // Category icon in circle
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(categoryColor.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                                imageVector = Icons.Default.DirectionsCar,
-                                contentDescription = "Open app",
-                                modifier = Modifier.size(16.dp)
+                            imageVector = icon,
+                            contentDescription = estimate.category,
+                            tint = categoryColor,
+                            modifier = Modifier.size(22.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                                text = "Book",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
+                            text = estimate.provider,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
                         )
+                        Text(
+                            text = estimate.category,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = categoryColor,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                // Right: Price + Book button
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Price
+                    Text(
+                        text = "₹${estimate.estimatedFare}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isBest) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurface
+                    )
+
+                    // Book button
+                    if (estimate.deepLink.isNotEmpty()) {
+                        FilledTonalButton(
+                            onClick = { openProviderApp(context, estimate) },
+                            modifier = Modifier.height(30.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = if (isBest) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = if (isBest) MaterialTheme.colorScheme.onPrimary
+                                              else MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Text(
+                                text = "Book",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.Outlined.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
 
-        // Best price indicator
-        if (isLowest) {
-            Box(
-                    modifier =
-                            Modifier.fillMaxWidth()
-                                    .background(
-                                            Brush.horizontalGradient(
-                                                    colors =
-                                                            listOf(
-                                                                    MaterialTheme.colorScheme
-                                                                            .primary.copy(
-                                                                            alpha = 0.2f
-                                                                    ),
-                                                                    MaterialTheme.colorScheme
-                                                                            .tertiary.copy(
-                                                                            alpha = 0.2f
-                                                                    )
-                                                            )
-                                            )
-                                    )
-                                    .padding(vertical = 6.dp),
-                    contentAlignment = Alignment.Center
-            ) {
-                Text(
-                        text = "🏆 Best Price",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                )
+/** Handle opening provider app with fallback */
+private fun openProviderApp(context: android.content.Context, estimate: FareEstimate) {
+    Log.d("FareCard", "📱 Opening: ${estimate.provider}")
+    try {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(estimate.deepLink))
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Log.e("FareCard", "❌ Failed to open ${estimate.provider}", e)
+        val playStoreUrl = when {
+            estimate.provider.contains("Rapido", ignoreCase = true) ->
+                "https://play.google.com/store/apps/details?id=com.rapido.passenger"
+            estimate.provider.contains("Uber", ignoreCase = true) ->
+                "https://play.google.com/store/apps/details?id=com.ubercab"
+            estimate.provider.contains("Ola", ignoreCase = true) ->
+                "https://play.google.com/store/apps/details?id=com.olacabs.customer"
+            else -> null
+        }
+        if (playStoreUrl != null) {
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(playStoreUrl)))
+            } catch (ex: Exception) {
+                Toast.makeText(context, "${estimate.provider} not available", Toast.LENGTH_SHORT).show()
             }
+        } else {
+            Toast.makeText(context, "${estimate.provider} app not installed", Toast.LENGTH_SHORT).show()
         }
     }
 }
@@ -380,67 +340,50 @@ fun getProviderIcon(category: String): ImageVector {
 @Composable
 fun getCategoryColor(category: String): Color {
     return when (category.lowercase()) {
-        "economy" -> Color(0xFF4CAF50) // Green
-        "premium" -> Color(0xFFFF9800) // Orange
-        "bike" -> Color(0xFF2196F3) // Blue
-        "auto" -> Color(0xFF9C27B0) // Purple
+        "economy" -> Color(0xFF2E7D32)   // Deep green
+        "premium" -> Color(0xFFE65100)   // Deep orange
+        "bike" -> Color(0xFF1565C0)      // Deep blue
+        "auto" -> Color(0xFF7B1FA2)      // Deep purple
         else -> MaterialTheme.colorScheme.primary
     }
 }
 
-/** Loading indicator for fare calculation with animation */
+/** Loading indicator */
 @Composable
 fun FareLoadingIndicator(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "loading")
-    val scale by
-            infiniteTransition.animateFloat(
-                    initialValue = 0.8f,
-                    targetValue = 1.2f,
-                    animationSpec =
-                            infiniteRepeatable(
-                                    animation = tween(1000, easing = EaseInOutCubic),
-                                    repeatMode = RepeatMode.Reverse
-                            ),
-                    label = "scale"
-            )
+    val dotAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = EaseInOutCubic),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
 
     Column(
-            modifier = modifier.fillMaxWidth().padding(48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Box(
-                modifier =
-                        Modifier.size(80.dp)
-                                .background(
-                                        Brush.radialGradient(
-                                                colors =
-                                                        listOf(
-                                                                MaterialTheme.colorScheme.primary
-                                                                        .copy(alpha = 0.3f),
-                                                                MaterialTheme.colorScheme.primary
-                                                                        .copy(alpha = 0.1f)
-                                                        )
-                                        ),
-                                        shape = CircleShape
-                                ),
-                contentAlignment = Alignment.Center
-        ) { CircularProgressIndicator(modifier = Modifier.size(60.dp * scale), strokeWidth = 4.dp) }
-
-        Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                    text = "Calculating fares...",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                    text = "Comparing 7 providers",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        CircularProgressIndicator(
+            modifier = Modifier.size(48.dp),
+            strokeWidth = 3.dp,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "Comparing fares...",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = dotAlpha)
+        )
+        Text(
+            text = "Checking multiple providers",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

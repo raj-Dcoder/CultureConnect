@@ -26,6 +26,7 @@ import com.rajveer.cultureconnect.features.auth.AuthScreen
 import com.rajveer.cultureconnect.features.auth.AuthViewModel
 import com.rajveer.cultureconnect.features.events.EventDetailScreen
 import com.rajveer.cultureconnect.features.events.EventsScreen
+import com.rajveer.cultureconnect.features.explore.ExploreDetailScreen
 import com.rajveer.cultureconnect.features.explore.ExploreScreen
 import com.rajveer.cultureconnect.features.onboarding.OnboardingScreen
 import com.rajveer.cultureconnect.features.profile.ProfileScreen
@@ -165,7 +166,10 @@ private fun MainAppWithBottomNav(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(BottomNavItem.Explore.route) {
-                ExploreScreen(onEventClick = { id -> navController.navigate("event/$id") })
+                ExploreScreen(
+                    onEventClick = { id -> navController.navigate("event/$id") },
+                    onExploreItemClick = { id -> navController.navigate("explore/$id") }
+                )
             }
             composable("events") {
                 EventsScreen(onEventClick = { id -> navController.navigate("event/$id") })
@@ -175,6 +179,10 @@ private fun MainAppWithBottomNav(
                 EventDetailScreen(id) { navController.popBackStack() }
             }
             composable(BottomNavItem.Travel.route) { TravelScreen() }
+            composable("explore/{id}") { backStack ->
+                val id = backStack.arguments?.getString("id")!!
+                ExploreDetailScreen(itemId = id) { navController.popBackStack() }
+            }
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
                     onLogoutClick = onLogout,

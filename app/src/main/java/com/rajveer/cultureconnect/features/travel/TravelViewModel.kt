@@ -228,6 +228,34 @@ constructor(
         }
     }
 
+    /** Pre-fill destination from Let's Go button and auto-set current location as From */
+    fun setDestination(destinationName: String) {
+        Log.d(TAG, "📍 Setting destination: $destinationName")
+        viewModelScope.launch {
+            // Forward geocode the name to get real coordinates
+            val coords = cityResolver.getCoordinatesFromName(destinationName)
+            if (coords != null) {
+                Log.d(TAG, "📍 Geocoded: $destinationName → (${coords.first}, ${coords.second})")
+                _toLocation.value = TravelLocation(
+                    name = destinationName,
+                    latLng = LatLng(coords.first, coords.second),
+                    isCurrentLocation = false
+                )
+            } else {
+                Log.w(TAG, "⚠️ Geocoding failed for: $destinationName, using name only")
+                _toLocation.value = TravelLocation(
+                    name = destinationName,
+                    latLng = LatLng(0.0, 0.0),
+                    isCurrentLocation = false
+                )
+            }
+            // Auto-fill "From" with current location
+            if (_fromLocation.value == null) {
+                useCurrentLocation()
+            }
+        }
+    }
+
     /** Clear a location */
     fun clearLocation(isFromLocation: Boolean) {
         if (isFromLocation) {

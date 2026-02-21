@@ -30,7 +30,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 /** Travel Screen - with sticky collapsing route bar */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TravelScreen(viewModel: TravelViewModel = hiltViewModel()) {
+fun TravelScreen(
+    viewModel: TravelViewModel = hiltViewModel(),
+    destination: String? = null
+) {
     val uiState by viewModel.uiState.collectAsState()
     val fromLocation by viewModel.fromLocation.collectAsState()
     val toLocation by viewModel.toLocation.collectAsState()
@@ -46,6 +49,15 @@ fun TravelScreen(viewModel: TravelViewModel = hiltViewModel()) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Auto-fill destination from navigation
+    LaunchedEffect(destination) {
+        if (!destination.isNullOrEmpty()) {
+            viewModel.setDestination(destination)
+            toQuery = destination
+        }
+    }
+
 
     // Track if the full card has scrolled out of view
     val listState = rememberLazyListState()

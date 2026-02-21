@@ -33,7 +33,8 @@ fun findExploreItemById(id: String): ExploreItem? {
 @Composable
 fun ExploreDetailScreen(
     itemId: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onLetsGo: (String) -> Unit = {}
 ) {
     val item = remember { findExploreItemById(itemId) }
 
@@ -286,6 +287,24 @@ fun ExploreDetailScreen(
                             }
                         }
                     }
+                }
+
+                // Let's Go button
+                Button(
+                    onClick = { onLetsGo(item.location) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Let's Go", fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

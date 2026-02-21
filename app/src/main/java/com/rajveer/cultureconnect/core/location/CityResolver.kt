@@ -36,4 +36,18 @@ class CityResolver @Inject constructor(
             parts.joinToString(", ")
         }
     }
+
+    /* Forward geocode: convert place name to coordinates */
+    fun getCoordinatesFromName(placeName: String): Pair<Double, Double>? {
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+            val addresses = geocoder.getFromLocationName(placeName, 1)
+            val address = addresses?.firstOrNull()
+            if (address != null) {
+                Pair(address.latitude, address.longitude)
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

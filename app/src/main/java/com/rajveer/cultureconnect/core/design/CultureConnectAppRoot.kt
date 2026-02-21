@@ -1,5 +1,6 @@
 package com.rajveer.cultureconnect.core.design
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -176,12 +177,28 @@ private fun MainAppWithBottomNav(
             }
             composable("event/{id}") { backStack ->
                 val id = backStack.arguments?.getString("id")!!
-                EventDetailScreen(id) { navController.popBackStack() }
+                EventDetailScreen(
+                    eventId = id,
+                    onBack = { navController.popBackStack() },
+                    onLetsGo = { destination ->
+                        navController.navigate("travel/go?destination=${Uri.encode(destination)}")
+                    }
+                )
             }
             composable(BottomNavItem.Travel.route) { TravelScreen() }
+            composable("travel/go?destination={destination}") { backStack ->
+                val destination = backStack.arguments?.getString("destination") ?: ""
+                TravelScreen(destination = destination)
+            }
             composable("explore/{id}") { backStack ->
                 val id = backStack.arguments?.getString("id")!!
-                ExploreDetailScreen(itemId = id) { navController.popBackStack() }
+                ExploreDetailScreen(
+                    itemId = id,
+                    onBack = { navController.popBackStack() },
+                    onLetsGo = { destination ->
+                        navController.navigate("travel/go?destination=${Uri.encode(destination)}")
+                    }
+                )
             }
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(

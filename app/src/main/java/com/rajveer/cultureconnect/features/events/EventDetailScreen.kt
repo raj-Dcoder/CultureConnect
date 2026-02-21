@@ -3,13 +3,11 @@ package com.rajveer.cultureconnect.features.events
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +27,7 @@ fun EventDetailScreen(
     eventId: String,
     viewModel: EventsViewModel = hiltViewModel(),
     onBack: () -> Unit,
+    onLetsGo: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     var isSaved by remember { mutableStateOf(false) }
@@ -209,6 +208,26 @@ fun EventDetailScreen(
             ) {
                 Text("View on Map")
             }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Let's Go button
+            Button(
+                onClick = { onLetsGo("${event.areaName}, ${event.city}") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Let's Go", fontWeight = FontWeight.Bold)
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

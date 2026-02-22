@@ -1,0 +1,57 @@
+// ─── CultureConnect Firestore Security Rules ─────────────────────
+//
+// KEY CONCEPT — Security Rules:
+// These rules run on Firebase's servers BEFORE any read/write happens.
+// They act as a gatekeeper — even if someone gets your database URL,
+// they can't access data unless the rules allow it.
+//
+// RULE OF THUMB: "Deny everything by default, allow only what you need"
+//
+// request.auth != null → user is logged in (has a valid Firebase Auth token)
+// request.auth.uid     → the logged-in user's unique ID
+//
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── EVENTS Collection ────────────────────────
+    // Events are curated — added manually via Firebase Console
+    // App users can READ events but NEVER create/edit/delete them
+    // This prevents anyone from injecting fake events into your app
+    match /events/{eventId} {
+      allow read: if request.auth != null;   // Any logged-in user can read
+      allow write: if false;                  // NOBODY can write from the app
+      // (You add events through Firebase Console, which bypasses these rules)
+    }
+
+    // ─── HIGHLIGHTS Collection ────────────────────
+    // Same as events — read-only curated content
+    match /highlights/{highlightId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ─── USERS Collection ─────────────────────────
+    // Each user can ONLY read/write their OWN profile document
+    // request.auth.uid == userId ensures User A can't read User B's data
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;  // Users can't delete their own profile from the app
+
+      // ─── SAVED EVENTS Subcollection ───────────
+      // Nested under each user: /users/{userId}/savedEvents/{eventId}
+      // Users can only manage their OWN saved events
+      match /savedEvents/{eventId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ─── DEFAULT: Deny Everything Else ────────────
+    // Any collection not explicitly listed above is completely locked down
+    // This is the "deny by default" principle
+  }
+}
